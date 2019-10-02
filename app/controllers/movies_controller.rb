@@ -11,11 +11,19 @@ class MoviesController < ApplicationController
   end
 
   def index
+    @all_ratings = Movie.unique(:rating)
+    @checked_bool = @all_ratings.product([true]).to_h
     @movies = Movie.all
     @sort = ""
     if params.key?(:sort_key)
       @movies = Movie.order(params[:sort_key])
       @sort = params[:sort_key]
+    elsif params.key?(:ratings)
+      @movies = Movie.with_ratings(params[:ratings].keys)
+      @checked_bool = @all_ratings.product([false]).to_h
+      params[:ratings].keys.each do |rating|
+        @checked_bool[rating] = true
+      end
     end
   end
 
