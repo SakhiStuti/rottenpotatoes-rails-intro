@@ -11,6 +11,39 @@ class MoviesController < ApplicationController
   end
 
   def index
+    def redirect_to_session(session, flash)
+      #function to generate the appropriate redirect url
+      flash.keep
+      if session.key?(:ratings) and session.key?(:sort_key)
+        redirect_to movies_path(:ratings => session[:ratings], :sort_key => session[:sort_key])
+      elsif session.key?(:ratings)
+        redirect_to movies_path(:ratings => session[:ratings])
+      elsif session.key?(:sort_key)
+        redirect_to movies_path(:sort_key => session[:sort_key])
+      else
+        redirect_to movies_path
+      end
+    end
+    
+    #assign approriate redirects in each case
+    if !params.key?(:sort_key) and !params.key?(:ratings) and (session.key?(:sort_key) or session.key?(:ratings))
+      redirect_to_session(session, flash)
+    elsif params.key?(:ratings) and params[:ratings].empty?
+      redirect_to_session(session, flash)
+    elsif params.key?(:ratings) and !params.key?(:sort_key)
+      session[:ratings] = params[:ratings]
+      if session.key?(:sort_key)
+        redirect_to_session(session, flash)
+      end
+    elsif params.key?(:sort_key) and !params.key?(:ratings)
+      session[:sort_key] = params[:sort_key]
+        if session.key?(:ratings)
+          redirect_to_session(session, flash)
+        end
+    end
+    
+    
+    #perform action
     @all_ratings = Movie.unique(:rating)
     @checked_bool = @all_ratings.product([true]).to_h
     @movies = Movie.all
@@ -18,8 +51,9 @@ class MoviesController < ApplicationController
     if params.key?(:sort_key)
       @movies = Movie.order(params[:sort_key])
       @sort = params[:sort_key]
-    elsif params.key?(:ratings)
-      @movies = Movie.with_ratings(params[:ratings].keys)
+    end
+    if params.key?(:ratings)
+      @movies = @movies.with_ratings(params[:ratings].keys)
       @checked_bool = @all_ratings.product([false]).to_h
       params[:ratings].keys.each do |rating|
         @checked_bool[rating] = true
